@@ -89,3 +89,49 @@ func (h *Handler) CreateUser(
 
 	json.NewEncoder(w).Encode(user)
 }
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var req LoginRequest
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+
+	if req.Email == "" || req.Password == "" {
+		http.Error(w, "Email and password are required",
+			http.StatusBadRequest)
+		return
+	}
+
+	user, passwordHash, err := h.repo.GetByEmail(
+		r.Context(),
+		req.Email,
+	)
+
+	if err != nil {
+		http.Error(w, "Invalid email or password",
+			http.StatusUnauthorized)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(passwordHash),
+		[]byte(req.Password),
+	)
+
+	if err != nil {
+		http.Error(w, "Invalid email or password",
+			http.StatusUnauthorized)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(user)
+}

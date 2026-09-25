@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
 
 	database "msg/internal/database"
@@ -33,6 +34,25 @@ func main() {
 	})
 
 	mux.HandleFunc("POST /api/users", userHandler.CreateUser)
+	mux.HandleFunc("POST /api/login", userHandler.Login)
+
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+		},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowedHeaders: []string{
+			"Content-Type",
+			"Authorization",
+		},
+	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -41,7 +61,7 @@ func main() {
 
 	log.Println("Server running on port", port)
 
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
+	if err := http.ListenAndServe(":"+port, c.Handler(mux)); err != nil {
 		log.Fatal(err)
 	}
 }

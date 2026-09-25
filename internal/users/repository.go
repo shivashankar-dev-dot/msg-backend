@@ -35,3 +35,32 @@ func (r *Repository) CreateUser(ctx context.Context, username string, email stri
 
 	return user, err
 }
+
+func (repo *Repository) GetByEmail(
+	ctx context.Context,
+	email string,
+) (User, string, error) {
+
+	var user User
+	var passwordHash string
+
+	query := `
+        SELECT id, username, email, password_hash, created_at
+        FROM users
+        WHERE email = $1
+    `
+
+	err := repo.db.QueryRow(
+		ctx,
+		query,
+		email,
+	).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&passwordHash,
+		&user.CreatedAt,
+	)
+
+	return user, passwordHash, err
+}
