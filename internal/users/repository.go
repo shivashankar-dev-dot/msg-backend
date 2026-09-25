@@ -20,9 +20,13 @@ func (r *Repository) CreateUser(ctx context.Context, username string, email stri
 
 	var user User
 
-	query := `INSRT INTO (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at`
+	query := `
+	  			INSERT INTO users (username, email, password_hash) 
+				VALUES ($1, $2, $3) 
+				RETURNING id, username, email, created_at
+			`
 
-	err := r.db.QueryRow(ctx, query, user, email, passwordHash).Scan(
+	err := r.db.QueryRow(ctx, query, username, email, passwordHash).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,

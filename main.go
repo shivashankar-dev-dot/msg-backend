@@ -1,44 +1,47 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	database "msg/internal/database"
 	"net/http"
 	"os"
 
-	"github.com/subosito/gotenv"
+	"github.com/joho/godotenv"
+
+	database "msg/internal/database"
+	users "msg/internal/users"
 )
 
 func main() {
-
-	fmt.Println("Hello world")
-
-	err := gotenv.Load()
-
-	if err != nil {
-		log.Printf("%s", err)
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: .env file not found")
 	}
-	fmt.Print(os.Getenv("DATABASE_URL"))
 
 	db, err := database.Connect()
-
 	if err != nil {
 		log.Fatal("Database connection failed:", err)
 	}
 	defer db.Close()
 
-	port := os.Getenv("PORT")
+	userRepo := users.NewRepository(db)
+	userHandler := users.NewHandler(userRepo)
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/contact", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
-	err = http.ListenAndServe(":"+port, mux)
-	if err != nil {
+	mux.HandleFunc("POST /api/users", userHandler.CreateUser)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Println("Server running on port", port)
+
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatal(err)
 	}
 }
